@@ -43,9 +43,7 @@
   INHOMO_RECO = 1 compute inhomogeneous recombinations, ala Sobacchi & Mesinger (2014).
   This *requires* stepping down in redshift, e.g. using drive_logZscroll_Ts.c or  drive_zscroll_noTs.c
 */
-
-// Changed from 1 to 0 29/7/19
-#define INHOMO_RECO (int) (0)
+#define INHOMO_RECO (int) (1)
 
 /*
   Typical star-formation timescale, in units of the Hubble time.  This is used to compute the UVB if inhomo_reco is on.
@@ -70,8 +68,7 @@
   If SHARP_CUTOFF = 1, use the constant ionizing efficency parameter \zeta = N_{\gammaUV} x f_{esc} x f_{\ast}
   with sharp cut-off at M_TURNOVER.
 */
-// Changed from 0 to 1 29/7/19
-#define SHARP_CUTOFF (int) (1)
+#define SHARP_CUTOFF (int) (0)
 
 /*
   Maximum horizon for ionizing photons, in comoving Mpc.
@@ -110,7 +107,6 @@
   present in all grid based codes, though it overcompensates by an effective loss in resolution.
   New in v1.1
  */
-// Changed from 1 to 0 29/7/19
 #define SMOOTH_EVOLVED_DENSITY_FIELD (int) (1)
 #define R_smooth_density (float) (0.2)
 
@@ -161,8 +157,7 @@
   is small).  However, option (0) is faster as it bypasses the halo finder, and it becomes
   increasingly accurate as the typical bubble size increases.
 */
-// Changed from 1 to 0 29/7/19
-#define USE_HALO_FIELD (int) (1)
+#define USE_HALO_FIELD (int) (0)
 
 
 /*

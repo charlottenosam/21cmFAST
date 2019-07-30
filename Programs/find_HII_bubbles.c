@@ -83,18 +83,34 @@ int parse_arguments(int argc, char ** argv, int * num_th, int * arg_offset, floa
 
   // parse the remaining arguments
   if (SHARP_CUTOFF) {
-	if (argc == (*arg_offset + min_argc)){
-      *MFP = R_BUBBLE_MAX;
-      *F_STAR10 = STELLAR_BARYON_FRAC;     
-      *ALPHA_STAR = STELLAR_BARYON_PL;
-      *F_ESC10 = ESC_FRAC;
-      *ALPHA_ESC = ESC_PL;
-      *M_TURN = M_TURNOVER;
-      *T_AST = t_STAR;
-	  *X_LUMINOSITY = pow(10.,L_X);
-	}
-    else{ return 0;} // format is not allowed
-  } 
+	// if (argc == (*arg_offset + min_argc)){
+ //      *MFP = R_BUBBLE_MAX;
+ //      *F_STAR10 = STELLAR_BARYON_FRAC;     
+ //      *ALPHA_STAR = STELLAR_BARYON_PL;
+ //      *F_ESC10 = ESC_FRAC;
+ //      *ALPHA_ESC = ESC_PL;
+ //      *M_TURN = M_TURNOVER;
+ //      *T_AST = t_STAR;
+	//   *X_LUMINOSITY = pow(10.,L_X);
+	// }
+
+    // Include fesc as an additional parameter (final parameter)
+    if (argc <= (*arg_offset + min_argc + 1)){
+        
+        *F_ESC10 = atof(argv[*arg_offset + min_argc]);
+
+        *MFP = R_BUBBLE_MAX;
+        *F_STAR10 = STELLAR_BARYON_FRAC;     
+        *ALPHA_STAR = STELLAR_BARYON_PL;
+        // *F_ESC10 = ESC_FRAC;
+        *ALPHA_ESC = ESC_PL;
+        *M_TURN = M_TURNOVER;
+        *T_AST = t_STAR;
+      *X_LUMINOSITY = pow(10.,L_X);
+    }
+      else{ return 0;} // format is not allowed
+  }
+ 
   else {
     if (USE_TS_IN_21CM) {
       if (argc == (*arg_offset + min_argc+7)){
@@ -239,7 +255,8 @@ int main(int argc, char ** argv){
     ION_EFF_FACTOR = N_GAMMA_UV * F_STAR10 * F_ESC10;
   }
   else
-    ION_EFF_FACTOR = N_GAMMA_UV * STELLAR_BARYON_FRAC * ESC_FRAC; // Constant ionizing efficiency parameter.
+    // ION_EFF_FACTOR = N_GAMMA_UV * STELLAR_BARYON_FRAC * ESC_FRAC; // Constant ionizing efficiency parameter.
+    ION_EFF_FACTOR = N_GAMMA_UV * STELLAR_BARYON_FRAC * F_ESC10; // Constant ionizing efficiency parameter.
 
   // Set the minimum halo mass hosting ionizing source mass.
   // For constant ionizing efficiency parameter M_MIN is set to be M_TURN which is a sharp cut-off.

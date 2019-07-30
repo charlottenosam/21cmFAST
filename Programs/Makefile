@@ -1,7 +1,9 @@
 #C compiler and flags
 CPPFLAGS = -I/usr/local/include
-LDFLAGS = -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
-CC      = gcc -fopenmp
+# LDFLAGS = -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
+# CPPFLAGS = -I/home/cmason/local/include
+LDFLAGS = -lgsl -lgslcblas -L/home/cmason/local/lib -lfftw3f_omp -lfftw3f -lm 
+CC      = gcc -g -fopenmp
 
 
 # Directory hosting the non-project specific code
@@ -34,6 +36,7 @@ OBJ_FILES = init \
   Ts \
   drive_zscroll_noTs \
   drive_xHIscroll \
+  drive_xHIscroll_only \
   kSZ_power \
   find_halos \
   update_halo_pos \
