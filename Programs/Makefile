@@ -29,6 +29,8 @@ OBJ_FILES = init \
   delta_ps \
   delta_T \
   find_HII_bubbles \
+  find_HII_bubbles_withMhscatter \
+  find_HII_bubbles_withzetascatter \
   gen_size_distr \
   perturb_field \
   filter_den_hist \
@@ -140,6 +142,18 @@ find_HII_bubbles:	find_HII_bubbles.c \
 	${COSMO_FILES}
 
 	${CC} ${CPPFLAGS} -o find_HII_bubbles find_HII_bubbles.c ${LDFLAGS}
+
+find_HII_bubbles_withMhscatter:	find_HII_bubbles_withMhscatter.c \
+	bubble_helper_progs.c \
+	${COSMO_FILES}
+
+	${CC} ${CPPFLAGS} -o find_HII_bubbles_withMhscatter find_HII_bubbles_withMhscatter.c ${LDFLAGS}
+
+find_HII_bubbles_withzetascatter:	find_HII_bubbles_withzetascatter.c \
+	bubble_helper_progs.c \
+	${COSMO_FILES}
+
+	${CC} ${CPPFLAGS} -o find_HII_bubbles_withzetascatter find_HII_bubbles_withzetascatter.c ${LDFLAGS}
 
 
 find_halos:	find_halos.c \

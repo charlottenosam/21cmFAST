@@ -30,6 +30,8 @@
 #define EFF_STOP (float) 15.1 // inclusive
 #define EFF_STEP (float) 2.5
 
+// Use zeta scatter?
+# define SCATTER (int) 1
 
 int main(int argc, char ** argv){
   // float ion_eff, M, M_MIN, fcoll, x_i;
@@ -60,8 +62,8 @@ int main(int argc, char ** argv){
     return -1;
   }
 
-  fprintf(stderr, "Calling init to set up the initial conditions\n");
-  fprintf(LOG, "Calling init to set up the initial conditions\n");
+  // fprintf(stderr, "Calling init to set up the initial conditions\n");
+  // fprintf(LOG, "Calling init to set up the initial conditions\n");
   // system("./init"); // you only need this call once per realization
 
   fprintf(stderr, "*************************************\n");
@@ -107,6 +109,11 @@ int main(int argc, char ** argv){
     x_i = 0.1;
     ion_eff = x_i/fcoll;
 
+    // Scatter on average reduces mean ion_eff by 1/2 --> boost it to get xHI ok
+    if (SCATTER){
+      ion_eff = 2. * x_i/fcoll;
+    }
+
     fesc_default = ESC_FRAC;
     ion_eff_default = N_GAMMA_UV * STELLAR_BARYON_FRAC * ESC_FRAC;
     fesc = fesc_default * ion_eff/ion_eff_default;
@@ -117,7 +124,14 @@ int main(int argc, char ** argv){
   while (1){
     // find bubbles
     fprintf(stderr, "x_i = %.1f \n", x_i);
-    sprintf(cmnd, "./find_HII_bubbles %.2f %f", Z, fesc);
+    if (SCATTER){
+      fprintf(stderr, "Using zeta scatter, %g min have ellapsed\n", difftime(start_time, curr_time)/60.0);
+      fprintf(LOG, "Using zeta scatter, %g min have ellapsed\n", difftime(start_time, curr_time)/60.0);
+      sprintf(cmnd, "./find_HII_bubbles_withzetascatter %.2f %f 1", Z, fesc);
+    }
+    else{
+      sprintf(cmnd, "./find_HII_bubbles %.2f %f", Z, fesc);      
+    }    
     time(&curr_time);
     fprintf(stderr, "Now calling: %s, %g min have ellapsed\n", cmnd, difftime(start_time, curr_time)/60.0);
     fprintf(LOG, "Now calling: %s, %g min have ellapsed\n", cmnd, difftime(start_time, curr_time)/60.0);
@@ -212,6 +226,11 @@ int main(int argc, char ** argv){
     if ((argc==2) && (atoi(argv[1]) == 1)){
       x_i += 0.1;
       ion_eff = x_i/fcoll;
+
+      // Scatter on average reduces mean ion_eff by 1/2 --> boost it to get xHI ok
+      if (SCATTER){
+        ion_eff = 2. * x_i/fcoll;
+      }
 
       fesc = fesc_default * ion_eff/ion_eff_default;
 
