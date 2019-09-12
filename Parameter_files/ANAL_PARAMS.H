@@ -43,7 +43,9 @@
   INHOMO_RECO = 1 compute inhomogeneous recombinations, ala Sobacchi & Mesinger (2014).
   This *requires* stepping down in redshift, e.g. using drive_logZscroll_Ts.c or  drive_zscroll_noTs.c
 */
-#define INHOMO_RECO (int) (1)
+
+// Changed from 1 to 0 29/7/19
+#define INHOMO_RECO (int) (0)
 
 /*
   Typical star-formation timescale, in units of the Hubble time.  This is used to compute the UVB if inhomo_reco is on.
@@ -68,7 +70,8 @@
   If SHARP_CUTOFF = 1, use the constant ionizing efficency parameter \zeta = N_{\gammaUV} x f_{esc} x f_{\ast}
   with sharp cut-off at M_TURNOVER.
 */
-#define SHARP_CUTOFF (int) (0)
+// Changed from 0 to 1 29/7/19
+#define SHARP_CUTOFF (int) (1)
 
 /*
   Maximum horizon for ionizing photons, in comoving Mpc.
@@ -107,6 +110,7 @@
   present in all grid based codes, though it overcompensates by an effective loss in resolution.
   New in v1.1
  */
+// Changed from 1 to 0 29/7/19
 #define SMOOTH_EVOLVED_DENSITY_FIELD (int) (1)
 #define R_smooth_density (float) (0.2)
 
@@ -125,10 +129,9 @@
   then find_HII_bubbles just prints a homogeneous xHI field
   of  1's.
 
-  Previous versions had a value of 1e-3. In order to avoid discontinuous of redshift evolution in PS, 
-  the threshold is changed to 1e-5, which is a hardcoded value.
+  This is a new option in v1.1. Previous versions had a hardcoded value of 1e-15.
 */
-#define HII_ROUND_ERR (float) (1e-5)
+#define HII_ROUND_ERR (float) (1e-3)
 
 
 /*
@@ -157,15 +160,9 @@
   which dominates the collapse fraction field on small scales (i.e. where the mean halo number 
   is small).  However, option (0) is faster as it bypasses the halo finder, and it becomes
   increasingly accurate as the typical bubble size increases.
-
-  NOTE: when using option (1), 
-        i) SET the real space top-hat filter for generating ionization field,
-           i.e. HII_FILTER = 0.
-        ii) BE CAREFUL the resolution is enough to resolve the minumum halo mass.
-            The minumum halo mass should be, at least, M_TURNOVER/3.
-            e.g., if M_TURNOVER = 5e8, BOX_LEN/DIM ~ 0.1
 */
-#define USE_HALO_FIELD (int) (0)
+// Changed from 1 to 0 29/7/19
+#define USE_HALO_FIELD (int) (1)
 
 
 /*

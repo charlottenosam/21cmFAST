@@ -61,7 +61,7 @@ void destroy_21cmMC_arrays() {
 FILE *LOG;
 unsigned long long SAMPLING_INTERVAL = (((unsigned long long)(HII_TOT_NUM_PIXELS/1.0e6)) + 1); //used to sample density field to compute mean collapsed fraction
 
-int parse_arguments(int argc, char ** argv, int * num_th, int * arg_offset, float * F_STAR10, 
+int parse_arguments(int argc, char ** argv, int * num_th, int * arg_offset, float * SCATTER, float * F_STAR10, 
 					float * ALPHA_STAR, float * F_ESC10, float * ALPHA_ESC, float * M_TURN, float * T_AST, double * X_LUMINOSITY, float * MFP, 
 					float * REDSHIFT, float * PREV_REDSHIFT){
 
@@ -94,10 +94,12 @@ int parse_arguments(int argc, char ** argv, int * num_th, int * arg_offset, floa
 	//   *X_LUMINOSITY = pow(10.,L_X);
 	// }
 
-    // Include fesc as an additional parameter (final parameter)
-    if (argc <= (*arg_offset + min_argc + 1)){
+    // Include fesc + scatter dex as an additional parameter (final parameter)
+    if (argc <= (*arg_offset + min_argc + 2)){
         
         *F_ESC10 = atof(argv[*arg_offset + min_argc]);
+        
+        *SCATTER = atof(argv[*arg_offset + min_argc + 1]); // Mh scatter in dex
 
         *MFP = R_BUBBLE_MAX;
         *F_STAR10 = STELLAR_BARYON_FRAC;     
@@ -168,12 +170,15 @@ int parse_arguments(int argc, char ** argv, int * num_th, int * arg_offset, floa
   else
     *PREV_REDSHIFT = *REDSHIFT+0.2; // dummy variable which is not used
 
-   fprintf(stderr, "find_HII_bubbles: command line parameters are as follows\nnum threads=%i, f_star10=%g, alpha_satr=%g, f_esc10=%g, alpha_esc=%g, Mturn=%g, t_star=%g, L_X=%g, z=%g, prev z=%g\n",
-	  *num_th, *F_STAR10, *ALPHA_STAR, *F_ESC10, *ALPHA_ESC, *M_TURN, *T_AST, *X_LUMINOSITY, *REDSHIFT, *PREV_REDSHIFT);
+   fprintf(stderr, "find_HII_bubbles: command line parameters are as follows\nnum threads=%i, Mh scatter=%g, f_star10=%g, alpha_satr=%g, f_esc10=%g, alpha_esc=%g, Mturn=%g, t_star=%g, L_X=%g, z=%g, prev z=%g\n",
+	  *num_th, *SCATTER, *F_STAR10, *ALPHA_STAR, *F_ESC10, *ALPHA_ESC, *M_TURN, *T_AST, *X_LUMINOSITY, *REDSHIFT, *PREV_REDSHIFT);
 
   return 1;
 }
 
+/********** Generate random number between 0 and 1 **********/
+double get_random() { return (double)rand() / (double)RAND_MAX; }
+/**********************************************/
 
 
 /********** MAIN PROGRAM **********/
@@ -189,12 +194,14 @@ int main(int argc, char ** argv){
   fftwf_complex *M_coll_unfiltered=NULL, *M_coll_filtered=NULL, *deltax_unfiltered=NULL, *deltax_filtered=NULL, *xe_unfiltered=NULL, *xe_filtered=NULL;
   fftwf_complex *N_rec_unfiltered=NULL, *N_rec_filtered=NULL;
   fftwf_plan plan;
+  float *halo_num_in_cell, *stochastic_factor;
   double global_xH=0, ave_xHI_xrays, ave_den, ST_over_PS, mean_f_coll_st, f_coll, ave_fcoll, dNrec;
   const gsl_rng_type * T=NULL;
   gsl_rng * r=NULL;
   double t_ast, dfcolldt, Gamma_R_prefactor, rec;
   float nua, dnua, temparg, Gamma_R, z_eff;
   float F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, Mlim_Fstar, Mlim_Fesc; //New in v2
+  float SCATTER; 
   double X_LUMINOSITY;
   float fabs_dtdz, ZSTEP;
   const float dz = 0.01;
@@ -209,11 +216,13 @@ int main(int argc, char ** argv){
   /******** BEGIN INITIALIZATION ********/
   /*************************************************************************************/  
 
+  srand(time(NULL)); // randomize seed for getting random numbers
+
   // PARSE COMMAND LINE ARGUMENTS
   if(SHARP_CUTOFF){
-    if( !parse_arguments(argc, argv, &num_th, &arg_offset, &F_STAR10, &ALPHA_STAR, &F_ESC10,
+    if( !parse_arguments(argc, argv, &num_th, &arg_offset, &SCATTER, &F_STAR10, &ALPHA_STAR, &F_ESC10,
 		       &ALPHA_ESC, &M_TURN, &T_AST, &X_LUMINOSITY, &MFP, &REDSHIFT, &PREV_REDSHIFT)){
-        fprintf(stderr, "find_HII_bubbles <redshift> [<previous redshift>] \n \
+        fprintf(stderr, "find_HII_bubbles <redshift> [<previous redshift>] [<f_esc>] [<scatter>]\n \
             Aborting...\n                               \
         Check that your inclusion (or not) of [<previous redshift>] is consistent with the INHOMO_RECO flag in ../Parameter_files/ANAL_PARAMS.H\nAborting...\n");
 	    return -1;
@@ -221,7 +230,7 @@ int main(int argc, char ** argv){
   }
   else {
     HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY = 1;
-    if( !parse_arguments(argc, argv, &num_th, &arg_offset, &F_STAR10, &ALPHA_STAR, &F_ESC10,
+    if( !parse_arguments(argc, argv, &num_th, &arg_offset, &SCATTER, &F_STAR10, &ALPHA_STAR, &F_ESC10,
 		       &ALPHA_ESC, &M_TURN, &T_AST, &X_LUMINOSITY, &MFP, &REDSHIFT, &PREV_REDSHIFT)){
         fprintf(stderr, "find_HII_bubbles <redshift> [<previous redshift>] \n \
         additional optional arguments: <f_star10> <alpha,star> <f_esc10> <alpha,esc> <M_TURNOVER>] [<t_star>]\n \
@@ -460,6 +469,14 @@ int main(int argc, char ** argv){
 	strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for M_coll boxes\nAborting...\n");
 	goto CLEANUP;
       }
+
+      // allocate memory for the halo count box
+      halo_num_in_cell = (float *) calloc(HII_TOT_NUM_PIXELS, sizeof(int));
+      if (!halo_num_in_cell){
+        strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for halo count box\nAborting...\n");
+        goto CLEANUP;
+      }
+
       for (ct=0; ct<HII_TOT_FFT_NUM_PIXELS; ct++){    *((float *)M_coll_unfiltered + ct) = 0;  }
       
       // read in the halo list
@@ -478,12 +495,33 @@ int main(int argc, char ** argv){
 	y = yf*HII_DIM;
 	z = zf*HII_DIM;
 	*((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) += mass;
+
+  // Save the number of halos in each cell
+  halo_num_in_cell[HII_R_INDEX(x, y, z)] += 1.;
+
 	fscanf(F, "%e %f %f %f", &mass, &xf, &yf, &zf);
       }
       fclose(F);
 	  F = NULL;
     } // end of the USE_HALO_FIELD option
 
+    // Save halo num box
+    sprintf(filename, "../Boxes/halo_num_z%06.2f_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, M_MIN, MFP, HII_DIM, BOX_LEN);
+    if (!(F = fopen(filename, "wb"))){
+        fprintf(stderr, "find_HII_bubbles: ERROR: unable to open file %s for writting!\n", filename);
+        fprintf(LOG, "find_HII_bubbles: ERROR: unable to open file %s for writting!\n", filename);
+    }
+    else {
+        fprintf(LOG, "Neutral fraction is %f\nNow writting halo_num box at %s\n", halo_num_in_cell, filename);
+        fprintf(stderr, "Neutral fraction is %f\nNow writting halo_num box at %s\n", halo_num_in_cell, filename);
+        fflush(LOG);
+        if (mod_fwrite(halo_num_in_cell, sizeof(int)*HII_TOT_NUM_PIXELS, 1, F)!=1){
+            fprintf(stderr, "find_HII_bubbles.c: Write error occured while writting halo_num box.\n");
+            fprintf(LOG, "find_HII_bubbles.c: Write error occured while writting halo_num box.\n");
+        }
+        fclose(F);
+      F = NULL;
+    }
     
     // ALLOCATE AND READ-IN THE EVOLVED DENSITY FIELD
     deltax_unfiltered = (fftwf_complex *) fftwf_malloc(sizeof(fftwf_complex)*HII_KSPACE_NUM_PIXELS);
@@ -633,8 +671,60 @@ int main(int argc, char ** argv){
 
     
     /*************************************************************************************/
+    /***************** Get stochastic factor for each cell  ***************************/
+    /*************************************************************************************/
+
+  // allocate memory for the stochastic factor box
+  stochastic_factor = (float *) calloc(HII_TOT_NUM_PIXELS, sizeof(int));
+  if (!stochastic_factor){
+    strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for stochastic factor box\nAborting...\n");
+    goto CLEANUP;
+  }
+
+  for (x=0; x<HII_DIM; x++){
+    for (y=0; y<HII_DIM; y++){
+      for (z=0; z<HII_DIM; z++){
+
+        // If no scatter, don't alter zeta
+        stochastic_factor[HII_R_INDEX(x, y, z)] = 1;
+
+        if (SCATTER){
+          
+          // If N=0, factor is mean for large number of halos:
+          stochastic_factor[HII_R_INDEX(x, y, z)] = 0.5;
+
+          // Get number of halos in each cell
+          int halo_num_in_cell_int = (int)halo_num_in_cell[HII_R_INDEX(x, y, z)];
+          
+          // Loop through each halo in a cell
+          if (halo_num_in_cell_int > 0){
+            int nn;
+            float stochastic_factor_sum = 0;  
+
+            for (nn=1; nn <= halo_num_in_cell_int; nn++){            
+              // Get random number for each halo and add to sum
+              stochastic_factor_sum += get_random(); // multiply ion_eff_factor by random number [0,1] in each cell
+            }
+
+          // Calc mean of stochastic values for each halo in a cell
+          stochastic_factor[HII_R_INDEX(x, y, z)] = stochastic_factor_sum/halo_num_in_cell[HII_R_INDEX(x, y, z)];
+          
+          // Rescale mass field by the stochastic factor so that when cells are smoothed the zeta scatter is properly included
+          // TODO from Brad
+          /* When mean_f_coll_st is computed, this now will need to include ION_EFF_FACTOR. 
+          Basically multiply mean_f_coll_st by the average zeta across all haloes.
+          Then remove all other instances of ION_EFF_FACTOR below this line. */
+          // *((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) *= stochastic_factor[HII_R_INDEX(x, y, z)];
+          }
+        }
+      }
+    }
+  }
+
+    /*************************************************************************************/
     /***************** LOOP THROUGH THE FILTER RADII (in Mpc)  ***************************/
     /*************************************************************************************/
+
     // set the max radius we will use, making sure we are always sampling the same values of radius
     // (this avoids aliasing differences w redshift)
     R=fmax(R_BUBBLE_MIN, (cell_length_factor*BOX_LEN/(float)HII_DIM));
@@ -791,7 +881,8 @@ int main(int argc, char ** argv){
       ion_ct=0;
       xHI_from_xrays = 1;
       Gamma_R_prefactor = pow(1+REDSHIFT, 2) * (R*CMperMPC) * SIGMA_HI * ALPHA_UVB / (ALPHA_UVB+2.75) * N_b0 * ION_EFF_FACTOR / 1.0e-12;
-      for (x=0; x<HII_DIM; x++){
+
+  for (x=0; x<HII_DIM; x++){
 	for (y=0; y<HII_DIM; y++){
 	  for (z=0; z<HII_DIM; z++){
 
@@ -821,7 +912,7 @@ int main(int argc, char ** argv){
 	    }
 
 	    // check if fully ionized!
-	    if ( (f_coll*ION_EFF_FACTOR > xHI_from_xrays*(1.0+rec)) ){ //IONIZED!! //New in v2
+	    if ( (f_coll*ION_EFF_FACTOR*stochastic_factor[HII_R_INDEX(x, y, z)] > xHI_from_xrays*(1.0+rec)) ){ //IONIZED!! //New in v2
 	    
 	      // if this is the first crossing of the ionization barrier for this cell (largest R), record the gamma
 	      // this assumes photon-starved growth of HII regions...  breaks down post EoR
@@ -868,7 +959,7 @@ int main(int argc, char ** argv){
 	      }
 
 	      // assign sub grid partial ionizations
-	      res_xH = xHI_from_xrays - f_coll * ION_EFF_FACTOR;
+	      res_xH = xHI_from_xrays - f_coll * ION_EFF_FACTOR * stochastic_factor[HII_R_INDEX(x, y, z)];
 	      
 	      // and make sure fraction doesn't blow up for underdense pixels
 	      if (res_xH < 0)
@@ -949,7 +1040,7 @@ int main(int argc, char ** argv){
     
     if (INHOMO_RECO){
       // N_rec box
-      sprintf(filename, "../Boxes/Nrec_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT,HII_FILTER, MFP, HII_DIM, BOX_LEN);
+      sprintf(filename, "../Boxes/Nrec_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT,HII_FILTER, MFP, HII_DIM, BOX_LEN);
       if (!(F = fopen(filename, "wb"))){
 	sprintf(error_message, "find_HII_bubbles: ERROR: unable to open file for writting Nrec box!\n");
 	goto CLEANUP;
@@ -970,7 +1061,7 @@ int main(int argc, char ** argv){
       }
     
       // Write z_re in the box
-      sprintf(filename, "../Boxes/z_first_ionization_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+      sprintf(filename, "../Boxes/z_first_ionization_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, HII_FILTER, MFP, HII_DIM, BOX_LEN);
       if (!(F = fopen(filename, "wb"))){
 	sprintf(error_message, "find_HII_bubbles: ERROR: unable to open file for writting z_re box!\n");
 	goto CLEANUP;
@@ -985,7 +1076,7 @@ int main(int argc, char ** argv){
       }
 
       // Gamma12 box
-      sprintf(filename, "../Boxes/Gamma12aveHII_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+      sprintf(filename, "../Boxes/Gamma12aveHII_z%06.2f_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, HII_FILTER, MFP, HII_DIM, BOX_LEN);
       if (!(F = fopen(filename, "wb"))){
 	sprintf(error_message, "find_HII_bubbles: ERROR: unable to open file for writting gamma box!\n");
 	goto CLEANUP;
@@ -1006,29 +1097,29 @@ int main(int argc, char ** argv){
     case 2:
 	  if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY != 0) {
         if (USE_HALO_FIELD)
-		  sprintf(filename, "../Boxes/xH_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+		  sprintf(filename, "../Boxes/xH_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
         else
-		  sprintf(filename, "../Boxes/xH_nohalos_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+		  sprintf(filename, "../Boxes/xH_nohalos_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
 	  }
 	  else {
         if (USE_HALO_FIELD)
-        sprintf(filename, "../Boxes/xH_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
+        sprintf(filename, "../Boxes/xH_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
         else
-        sprintf(filename, "../Boxes/xH_nohalos_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
+        sprintf(filename, "../Boxes/xH_nohalos_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
       }
       break;
     default:
 	  if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY != 0) {
         if (USE_HALO_FIELD)
-		  sprintf(filename, "../Boxes/sphere_xH_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+		  sprintf(filename, "../Boxes/sphere_xH_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
         else
-		  sprintf(filename, "../Boxes/sphere_xH_nohalos_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
+		  sprintf(filename, "../Boxes/sphere_xH_nohalos_z%06.2f_nf%f_Fstar%.4f_starPL%.4f_Fesc%.4f_escPL%.4f_Mturn%.2e_HIIfilter%i_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, F_STAR10, ALPHA_STAR, F_ESC10, ALPHA_ESC, M_TURN, HII_FILTER, MFP, HII_DIM, BOX_LEN);
 	  }
 	  else {
         if (USE_HALO_FIELD)
-        sprintf(filename, "../Boxes/sphere_xH_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
+        sprintf(filename, "../Boxes/sphere_xH_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
         else
-        sprintf(filename, "../Boxes/sphere_xH_nohalos_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
+        sprintf(filename, "../Boxes/sphere_xH_nohalos_z%06.2f_nf%f_eff%.1f_effPLindex0_HIIfilter%i_Mmin%.1e_RHIImax%.0f_%i_%.0fMpc_SCATTERZETA", REDSHIFT, global_xH, ION_EFF_FACTOR, HII_FILTER, M_MIN, MFP, HII_DIM, BOX_LEN);
 	  }
     }
     if (!(F = fopen(filename, "wb"))){
@@ -1048,7 +1139,6 @@ int main(int argc, char ** argv){
         fclose(F);
 	    F = NULL;
     }
-  
 
 
 	  fprintf(stderr, error_message);

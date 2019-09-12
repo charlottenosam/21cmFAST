@@ -9,7 +9,8 @@ NOTE:  We encourage the user to perform their own convergance tests if modifying
 /*
   Flag specifying whether one wants to calculate the spin temperature or just assume (Ts>>Tk)
 */
-#define USE_TS_IN_21CM (int) (1)
+// Changed from 1 to 0 29/7/19
+#define USE_TS_IN_21CM (int) (0)
 
 
 /*

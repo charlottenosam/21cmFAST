@@ -1,7 +1,9 @@
 #C compiler and flags
 CPPFLAGS = -I/usr/local/include
-LDFLAGS = -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
-CC      = gcc -fopenmp
+# LDFLAGS = -lgsl -lgslcblas -lfftw3f_omp -lfftw3f -lm
+# CPPFLAGS = -I/home/cmason/local/include
+LDFLAGS = -lgsl -lgslcblas -L/home/cmason/local/lib -lfftw3f_omp -lfftw3f -lm 
+CC      = gcc -g -fopenmp
 
 
 # Directory hosting the non-project specific code
@@ -27,6 +29,8 @@ OBJ_FILES = init \
   delta_ps \
   delta_T \
   find_HII_bubbles \
+  find_HII_bubbles_withMhscatter \
+  find_HII_bubbles_withzetascatter \
   gen_size_distr \
   perturb_field \
   filter_den_hist \
@@ -34,6 +38,7 @@ OBJ_FILES = init \
   Ts \
   drive_zscroll_noTs \
   drive_xHIscroll \
+  drive_xHIscroll_only \
   kSZ_power \
   find_halos \
   update_halo_pos \
@@ -137,6 +142,18 @@ find_HII_bubbles:	find_HII_bubbles.c \
 	${COSMO_FILES}
 
 	${CC} ${CPPFLAGS} -o find_HII_bubbles find_HII_bubbles.c ${LDFLAGS}
+
+find_HII_bubbles_withMhscatter:	find_HII_bubbles_withMhscatter.c \
+	bubble_helper_progs.c \
+	${COSMO_FILES}
+
+	${CC} ${CPPFLAGS} -o find_HII_bubbles_withMhscatter find_HII_bubbles_withMhscatter.c ${LDFLAGS}
+
+find_HII_bubbles_withzetascatter:	find_HII_bubbles_withzetascatter.c \
+	bubble_helper_progs.c \
+	${COSMO_FILES}
+
+	${CC} ${CPPFLAGS} -o find_HII_bubbles_withzetascatter find_HII_bubbles_withzetascatter.c ${LDFLAGS}
 
 
 find_halos:	find_halos.c \

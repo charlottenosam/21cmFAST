@@ -262,7 +262,7 @@ int main(int argc, char ** argv){
   delta_crit = Deltac; // for now set to spherical; check if we want elipsoidal later
 
   //set the minimum source mass
-  M_MIN = M_TURNOVER/3.;
+  M_MIN = M_TURNOVER;
 
   // open log file
   system("mkdir ../Log_files");
