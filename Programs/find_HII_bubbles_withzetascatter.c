@@ -677,7 +677,7 @@ int main(int argc, char ** argv){
   // allocate memory for the stochastic factor box
   stochastic_factor = (float *) calloc(HII_TOT_NUM_PIXELS, sizeof(int));
   if (!stochastic_factor){
-    strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for  stochastic factor box\nAborting...\n");
+    strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for stochastic factor box\nAborting...\n");
     goto CLEANUP;
   }
 
@@ -696,7 +696,7 @@ int main(int argc, char ** argv){
           // Get number of halos in each cell
           int halo_num_in_cell_int = (int)halo_num_in_cell[HII_R_INDEX(x, y, z)];
           
-          // Loop through each halo
+          // Loop through each halo in a cell
           if (halo_num_in_cell_int > 0){
             int nn;
             float stochastic_factor_sum = 0;  
@@ -706,8 +706,15 @@ int main(int argc, char ** argv){
               stochastic_factor_sum += get_random(); // multiply ion_eff_factor by random number [0,1] in each cell
             }
 
-          // Calc mean of stochastic array
+          // Calc mean of stochastic values for each halo in a cell
           stochastic_factor[HII_R_INDEX(x, y, z)] = stochastic_factor_sum/halo_num_in_cell[HII_R_INDEX(x, y, z)];
+          
+          // Rescale mass field by the stochastic factor so that when cells are smoothed the zeta scatter is properly included
+          // TODO from Brad
+          /* When mean_f_coll_st is computed, this now will need to include ION_EFF_FACTOR. 
+          Basically multiply mean_f_coll_st by the average zeta across all haloes.
+          Then remove all other instances of ION_EFF_FACTOR below this line. */
+          // *((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) *= stochastic_factor[HII_R_INDEX(x, y, z)];
           }
         }
       }
