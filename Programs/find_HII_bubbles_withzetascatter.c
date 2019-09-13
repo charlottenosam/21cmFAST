@@ -331,11 +331,6 @@ int main(int argc, char ** argv){
           goto CLEANUP;
       }
   }
-	  
-	  
-	  
-	  
-  }
 	
   // compute the mean collpased fraction at this redshift
   if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY){ // New in v2
@@ -559,9 +554,9 @@ int main(int argc, char ** argv){
           
                      // Rescale mass field by the stochastic factor so that when cells are smoothed the zeta scatter is properly included
                      // TODO from Brad
-                     /* When mean_f_coll_st is computed, this now will need to include ION_EFF_FACTOR. 
-                        Basically multiply mean_f_coll_st by the average zeta across all haloes.
-                        Then remove all other instances of ION_EFF_FACTOR below this line. */
+                     // When mean_f_coll_st is computed, this now will need to include ION_EFF_FACTOR. 
+                     //   Basically multiply mean_f_coll_st by the average zeta across all haloes.
+                     //   Then remove all other instances of ION_EFF_FACTOR below this line.
                      // *((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) *= stochastic_factor[HII_R_INDEX(x, y, z)];
                  }
 	      */
