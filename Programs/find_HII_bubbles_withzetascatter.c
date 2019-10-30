@@ -344,7 +344,7 @@ int main(int argc, char ** argv){
   }
 	
   // BG: Modify mean_f_coll_st to include the stocastic nature of zeta
-  mean_f_coll_st *= ION_EFF_FACTOR;
+  mean_f_coll_st *= ION_EFF_FACTOR;    
   // BG: Now, this quantity refers to the normalisation of the entire box
   // I couldn't decide as to whether this should be 0.5 * ION_EFF_FACTOR or ION_EFF_FACTOR for the scatter case
   // There is no correct way to determine this given how the scatter is being implemented as < zeta * f_coll> =/= <zeta>*<f_coll>
@@ -352,6 +352,8 @@ int main(int argc, char ** argv){
   // However, what this quantity is used for is to ensure this amount of ionising photons (or collapsed mass previously)
   // is produced by the box. i.e. the actual box amount is scaled to this quantity.
   // Thus, this shouldn't really matter
+  // CM: Agreed, I initially thought 0.5 was necessary to get the right xHI value in drive_xHIscroll, 
+  // but I was multiplying fesc * 2 in that script, so removing all factors of 2 works!
 	
 
   /**********  CHECK IF WE ARE IN THE DARK AGES ******************************/
@@ -842,38 +844,38 @@ int main(int argc, char ** argv){
 	}
       }
 
-      for (x=0; x<HII_DIM; x++){
-	for (y=0; y<HII_DIM; y++){
-	  for (z=0; z<HII_DIM; z++){
-	    if (USE_HALO_FIELD){
-	      Splined_Fcoll = *((float *)M_coll_filtered + HII_R_FFT_INDEX(x,y,z)) / (massofscaleR*density_over_mean);
-	      Splined_Fcoll *= (4/3.0)*PI*pow(R,3) / pixel_volume;
-	    }	    
-	    else{
-	      density_over_mean = 1.0 + *((float *)deltax_filtered + HII_R_FFT_INDEX(x,y,z));	    
-	      if ( (density_over_mean - 1) < Deltac){ // we are not resolving collapsed structures
-		if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY) { // New in v2
-		  // Here again, 'Splined_Fcoll' and 'f_coll' are not the collpased fraction, but leave this name as is to simplify the variable name.
-		  // f_coll * ION_EFF_FACTOR = the number of IGM ionizing photon per baryon at a given overdensity.
-		  // see eq. (17) in Park et al. 2018
-		  Nion_Spline_density(density_over_mean - 1,&(Splined_Fcoll));
-		}
-		else{ // we can assume the classic constant ionizing luminosity to halo mass ratio
-		  erfc_num = (Deltac - (density_over_mean-1)) /  growth_factor;
-		  Splined_Fcoll = splined_erfc(erfc_num/erfc_denom);
-		}	      
-	      }
-	      else { // the entrire cell belongs to a collpased halo...  this is rare...
-		Splined_Fcoll =  1.0;
-	      }
-	    }
+  for (x=0; x<HII_DIM; x++){
+	  for (y=0; y<HII_DIM; y++){
+	    for (z=0; z<HII_DIM; z++){
+  	    if (USE_HALO_FIELD){
+  	      Splined_Fcoll = *((float *)M_coll_filtered + HII_R_FFT_INDEX(x,y,z)) / (massofscaleR*density_over_mean);
+  	      Splined_Fcoll *= (4/3.0)*PI*pow(R,3) / pixel_volume;
+  	    }	    
+  	    else{
+      	      density_over_mean = 1.0 + *((float *)deltax_filtered + HII_R_FFT_INDEX(x,y,z));	    
+      	      if ( (density_over_mean - 1) < Deltac){ // we are not resolving collapsed structures
+              		if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY) { // New in v2
+              		  // Here again, 'Splined_Fcoll' and 'f_coll' are not the collpased fraction, but leave this name as is to simplify the variable name.
+              		  // f_coll * ION_EFF_FACTOR = the number of IGM ionizing photon per baryon at a given overdensity.
+              		  // see eq. (17) in Park et al. 2018
+              		  Nion_Spline_density(density_over_mean - 1,&(Splined_Fcoll));
+              		}
+              		else{ // we can assume the classic constant ionizing luminosity to halo mass ratio
+              		  erfc_num = (Deltac - (density_over_mean-1)) /  growth_factor;
+              		  Splined_Fcoll = splined_erfc(erfc_num/erfc_denom);
+              		}	      
+      	      }
+      	      else { // the entrire cell belongs to a collpased halo...  this is rare...
+            		Splined_Fcoll =  1.0;
+            	  }
+  	    }
 
 	    // save the value of the collasped fraction into the Fcoll array
 	    Fcoll[HII_R_FFT_INDEX(x,y,z)] = Splined_Fcoll;
 	    f_coll += Splined_Fcoll;	    
-	  }
-	}
-      } //  end loop through Fcoll box
+  	  }
+  	}
+  } //  end loop through Fcoll box
 
       f_coll /= (double) HII_TOT_NUM_PIXELS; // ave PS fcoll for this filter scale
       ST_over_PS = mean_f_coll_st/f_coll; // normalization ratio used to adjust the PS conditional collapsed fraction

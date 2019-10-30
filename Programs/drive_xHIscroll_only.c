@@ -109,10 +109,11 @@ int main(int argc, char ** argv){
     x_i = 0.1;
     ion_eff = x_i/fcoll;
 
+    // CM don't need to do this now if f_coll is normalised
     // Scatter on average reduces mean ion_eff by 1/2 --> boost it to get xHI ok
-    if (SCATTER){
-      ion_eff = 2. * x_i/fcoll;
-    }
+    // if (SCATTER){
+    //   ion_eff = 2. * x_i/fcoll;
+    // }
 
     fesc_default = ESC_FRAC;
     ion_eff_default = N_GAMMA_UV * STELLAR_BARYON_FRAC * ESC_FRAC;
@@ -227,10 +228,11 @@ int main(int argc, char ** argv){
       x_i += 0.1;
       ion_eff = x_i/fcoll;
 
+       // CM don't need to do this now if f_coll is normalised
       // Scatter on average reduces mean ion_eff by 1/2 --> boost it to get xHI ok
-      if (SCATTER){
-        ion_eff = 2. * x_i/fcoll;
-      }
+      // if (SCATTER){
+      //   ion_eff = 2. * x_i/fcoll;
+      // }
 
       fesc = fesc_default * ion_eff/ion_eff_default;
 
