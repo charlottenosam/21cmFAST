@@ -1,6 +1,25 @@
 ########################################
+<<<<<<< HEAD
 #
 # Running order of scripts to make boxes with stochastic zeta
+=======
+# Running order of scripts to make boxes with stochastic zeta 
+#
+# If star formation / escape fraction is stochastic, how does that impact EoR topology? 
+#
+# Model: Assign a random number [0, 1] to every halo 
+# (drawn from uniform distribution U(0,1), random number for halo i is u_i)
+#
+# In each cell, calculate the mean of the random numbers for the halos in that
+# cell, this is the 'stochastic factor' which multiplies the ionizing efficiency
+# zeta
+# 
+# e.g. stochastic_factor = SUM(u_i)/N_halos_in_cell
+# 
+# For large N_halos_in_cell, stochastic_factor --> 0.5, for small
+# N_halos_in_cell, stochastic_factor is a uniform distribution. i.e. for cells
+# with < 3 halos, there can be large fluctuations from the mean.
+>>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 #
 ########################################
 
@@ -25,6 +44,7 @@
 ./drive_xHIscroll_only 1
 
 # Find bubble size distribution [0 ionized, 1 neutral]
+<<<<<<< HEAD
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.157551_eff36.2_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.245882_eff32.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.352933_eff28.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
@@ -34,6 +54,18 @@
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.791256_eff12.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.867111_eff8.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
 ./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.927876_eff4.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+=======
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.143411_eff18.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.229911_eff16.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.336039_eff14.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.453076_eff12.1_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.571524_eff10.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.685022_eff8.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.782880_eff6.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.864189_eff4.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+./gen_size_distr 7.0 0 ../Boxes/xH_z007.00_nf0.928655_eff2.0_effPLindex0_HIIfilter1_Mmin5.0e+08_RHIImax50_200_300Mpc_SCATTERZETA
+
+>>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 
 # Rename size distributions
 rename Mpc Mpc_SCATTERZETA *Mpc
