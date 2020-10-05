@@ -315,9 +315,6 @@ int main(int argc, char ** argv){
   }
   for (ct=0; ct<HII_TOT_NUM_PIXELS; ct++){    xH[ct] = 1;  }
 
-<<<<<<< HEAD
-
-=======
   int halo_num_in_cell_int, nn;
   float stochastic_factor_sum;
 
@@ -335,7 +332,6 @@ int main(int argc, char ** argv){
       }
   }
 	
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
   // compute the mean collpased fraction at this redshift
   if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY){ // New in v2
 	// Here 'mean_f_coll_st' is not the mean collpased fraction, but leave this name as is to simplify the variable name.
@@ -346,8 +342,6 @@ int main(int argc, char ** argv){
   else { 
     mean_f_coll_st = FgtrM_st(REDSHIFT, M_MIN);
   }
-<<<<<<< HEAD
-=======
 	
   // BG: Modify mean_f_coll_st to include the stocastic nature of zeta
   mean_f_coll_st *= ION_EFF_FACTOR;    
@@ -361,16 +355,11 @@ int main(int argc, char ** argv){
   // CM: Agreed, I initially thought 0.5 was necessary to get the right xHI value in drive_xHIscroll, 
   // but I was multiplying fesc * 2 in that script, so removing all factors of 2 works!
 	
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 
   /**********  CHECK IF WE ARE IN THE DARK AGES ******************************/
   // lets check if we are going to bother with computing the inhmogeneous field at all...
   global_xH = 0;
-<<<<<<< HEAD
-  if ((mean_f_coll_st*ION_EFF_FACTOR < HII_ROUND_ERR)){ // way too small to ionize anything...//New in v2
-=======
   if ((mean_f_coll_st < HII_ROUND_ERR)){ // way too small to ionize anything...//New in v2
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
       fprintf(stderr, "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n \
                        I will just declare everything to be neutral\n", mean_f_coll_st, 1./ION_EFF_FACTOR);
       fprintf(LOG, "The ST mean collapse fraction is %e, which is much smaller than the effective critical collapse fraction of %e\n \
@@ -510,17 +499,6 @@ int main(int argc, char ** argv){
 	goto CLEANUP;
       }
 
-<<<<<<< HEAD
-      // allocate memory for the halo count box
-      halo_num_in_cell = (float *) calloc(HII_TOT_NUM_PIXELS, sizeof(int));
-      if (!halo_num_in_cell){
-        strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for halo count box\nAborting...\n");
-        goto CLEANUP;
-      }
-
-      for (ct=0; ct<HII_TOT_FFT_NUM_PIXELS; ct++){    *((float *)M_coll_unfiltered + ct) = 0;  }
-      
-=======
       for (ct=0; ct<HII_TOT_FFT_NUM_PIXELS; ct++){    *((float *)M_coll_unfiltered + ct) = 0;  }
       
       // allocate memory for the halo count box
@@ -530,7 +508,6 @@ int main(int argc, char ** argv){
           goto CLEANUP;
       }		    
 	    
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
       // read in the halo list
       sprintf(filename, "../Output_files/Halo_lists/updated_halos_z%06.2f_%i_%.0fMpc", REDSHIFT, DIM, BOX_LEN);
       F = fopen(filename, "r");
@@ -546,13 +523,6 @@ int main(int argc, char ** argv){
 	x = xf*HII_DIM;
 	y = yf*HII_DIM;
 	z = zf*HII_DIM;
-<<<<<<< HEAD
-	*((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) += mass;
-
-  // Save the number of halos in each cell
-  halo_num_in_cell[HII_R_INDEX(x, y, z)] += 1.;
-
-=======
 
 	// Save the number of halos in each cell
         halo_num_in_cell[HII_R_INDEX(x, y, z)] += 1.;      
@@ -597,7 +567,6 @@ int main(int argc, char ** argv){
 		*((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) += ION_EFF_FACTOR * mass;		
 	}	      
 	      
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 	fscanf(F, "%e %f %f %f", &mass, &xf, &yf, &zf);
       }
       fclose(F);
@@ -768,61 +737,7 @@ int main(int argc, char ** argv){
     /*****************  END OF INITIALIZATION ********************************************/
     /*************************************************************************************/
 
-<<<<<<< HEAD
-    
-    /*************************************************************************************/
-    /***************** Get stochastic factor for each cell  ***************************/
-    /*************************************************************************************/
 
-  // allocate memory for the stochastic factor box
-  stochastic_factor = (float *) calloc(HII_TOT_NUM_PIXELS, sizeof(int));
-  if (!stochastic_factor){
-    strcpy(error_message, "find_HII_bubbles.c: Error allocating memory for stochastic factor box\nAborting...\n");
-    goto CLEANUP;
-  }
-
-  for (x=0; x<HII_DIM; x++){
-    for (y=0; y<HII_DIM; y++){
-      for (z=0; z<HII_DIM; z++){
-
-        // If no scatter, don't alter zeta
-        stochastic_factor[HII_R_INDEX(x, y, z)] = 1;
-
-        if (SCATTER){
-          
-          // If N=0, factor is mean for large number of halos:
-          stochastic_factor[HII_R_INDEX(x, y, z)] = 0.5;
-
-          // Get number of halos in each cell
-          int halo_num_in_cell_int = (int)halo_num_in_cell[HII_R_INDEX(x, y, z)];
-          
-          // Loop through each halo in a cell
-          if (halo_num_in_cell_int > 0){
-            int nn;
-            float stochastic_factor_sum = 0;  
-
-            for (nn=1; nn <= halo_num_in_cell_int; nn++){            
-              // Get random number for each halo and add to sum
-              stochastic_factor_sum += get_random(); // multiply ion_eff_factor by random number [0,1] in each cell
-            }
-
-          // Calc mean of stochastic values for each halo in a cell
-          stochastic_factor[HII_R_INDEX(x, y, z)] = stochastic_factor_sum/halo_num_in_cell[HII_R_INDEX(x, y, z)];
-          
-          // Rescale mass field by the stochastic factor so that when cells are smoothed the zeta scatter is properly included
-          // TODO from Brad
-          /* When mean_f_coll_st is computed, this now will need to include ION_EFF_FACTOR. 
-          Basically multiply mean_f_coll_st by the average zeta across all haloes.
-          Then remove all other instances of ION_EFF_FACTOR below this line. */
-          // *((float *)M_coll_unfiltered + HII_R_FFT_INDEX(x, y, z)) *= stochastic_factor[HII_R_INDEX(x, y, z)];
-          }
-        }
-      }
-    }
-  }
-
-=======
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
     /*************************************************************************************/
     /***************** LOOP THROUGH THE FILTER RADII (in Mpc)  ***************************/
     /*************************************************************************************/
@@ -930,33 +845,6 @@ int main(int argc, char ** argv){
 	}
       }
 
-<<<<<<< HEAD
-      for (x=0; x<HII_DIM; x++){
-	for (y=0; y<HII_DIM; y++){
-	  for (z=0; z<HII_DIM; z++){
-	    if (USE_HALO_FIELD){
-	      Splined_Fcoll = *((float *)M_coll_filtered + HII_R_FFT_INDEX(x,y,z)) / (massofscaleR*density_over_mean);
-	      Splined_Fcoll *= (4/3.0)*PI*pow(R,3) / pixel_volume;
-	    }	    
-	    else{
-	      density_over_mean = 1.0 + *((float *)deltax_filtered + HII_R_FFT_INDEX(x,y,z));	    
-	      if ( (density_over_mean - 1) < Deltac){ // we are not resolving collapsed structures
-		if (HALO_MASS_DEPENDENT_IONIZING_EFFICIENCY) { // New in v2
-		  // Here again, 'Splined_Fcoll' and 'f_coll' are not the collpased fraction, but leave this name as is to simplify the variable name.
-		  // f_coll * ION_EFF_FACTOR = the number of IGM ionizing photon per baryon at a given overdensity.
-		  // see eq. (17) in Park et al. 2018
-		  Nion_Spline_density(density_over_mean - 1,&(Splined_Fcoll));
-		}
-		else{ // we can assume the classic constant ionizing luminosity to halo mass ratio
-		  erfc_num = (Deltac - (density_over_mean-1)) /  growth_factor;
-		  Splined_Fcoll = splined_erfc(erfc_num/erfc_denom);
-		}	      
-	      }
-	      else { // the entrire cell belongs to a collpased halo...  this is rare...
-		Splined_Fcoll =  1.0;
-	      }
-	    }
-=======
   for (x=0; x<HII_DIM; x++){
 	  for (y=0; y<HII_DIM; y++){
 	    for (z=0; z<HII_DIM; z++){
@@ -982,20 +870,13 @@ int main(int argc, char ** argv){
             		Splined_Fcoll =  1.0;
             	  }
   	    }
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 
 	    // save the value of the collasped fraction into the Fcoll array
 	    Fcoll[HII_R_FFT_INDEX(x,y,z)] = Splined_Fcoll;
 	    f_coll += Splined_Fcoll;	    
-<<<<<<< HEAD
-	  }
-	}
-      } //  end loop through Fcoll box
-=======
   	  }
   	}
   } //  end loop through Fcoll box
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 
       f_coll /= (double) HII_TOT_NUM_PIXELS; // ave PS fcoll for this filter scale
       ST_over_PS = mean_f_coll_st/f_coll; // normalization ratio used to adjust the PS conditional collapsed fraction
@@ -1048,11 +929,7 @@ int main(int argc, char ** argv){
 	    }
 
 	    // check if fully ionized!
-<<<<<<< HEAD
-	    if ( (f_coll*ION_EFF_FACTOR*stochastic_factor[HII_R_INDEX(x, y, z)] > xHI_from_xrays*(1.0+rec)) ){ //IONIZED!! //New in v2
-=======
 	    if ( (f_coll > xHI_from_xrays*(1.0+rec)) ){ //IONIZED!! //New in v2
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 	    
 	      // if this is the first crossing of the ionization barrier for this cell (largest R), record the gamma
 	      // this assumes photon-starved growth of HII regions...  breaks down post EoR
@@ -1099,11 +976,7 @@ int main(int argc, char ** argv){
 	      }
 
 	      // assign sub grid partial ionizations
-<<<<<<< HEAD
-	      res_xH = xHI_from_xrays - f_coll * ION_EFF_FACTOR * stochastic_factor[HII_R_INDEX(x, y, z)];
-=======
 	      res_xH = xHI_from_xrays - f_coll;
->>>>>>> 6288d6fcf87510f37a832009288f488ed4806a16
 	      
 	      // and make sure fraction doesn't blow up for underdense pixels
 	      if (res_xH < 0)
